@@ -1,6 +1,6 @@
 {
   "$schema": "./map-schema-v2.json",
-  "$version": "v2-alpha.2",
+  "$version": "v2-alpha.3",
   "offset": 0,
   "timelines": [
     {
@@ -73,7 +73,12 @@
           "lane": 0,
           "width": 3,
           "curve": "cubic-bezier",
-          "bezier": [0, 1, 0, 1]
+          "bezier": {
+            "x1": 0,
+            "y1": 0,
+            "x2": 1,
+            "y2": 1
+          }
         },
         {
           "id": "8d78494d-f947-4779-b939-8a0a4be198a0",

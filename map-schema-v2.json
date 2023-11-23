@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Fannithm Map JSON v2-alpha.2",
+  "title": "Fannithm Map JSON v2-alpha.3",
   "type": "object",
   "$defs": {
     "uuid": {
@@ -136,6 +136,30 @@
         "cubic-bezier"
       ]
     },
+    "cubicBezierValue": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "cubicBezier": {
+      "type": "object",
+      "properties": {
+        "x1": {
+          "$ref": "#/$defs/cubicBezierValue"
+        },
+        "y1": {
+          "$ref": "#/$defs/cubicBezierValue"
+        },
+        "x2": {
+          "$ref": "#/$defs/cubicBezierValue"
+        },
+        "y2": {
+          "$ref": "#/$defs/cubicBezierValue"
+        }
+      },
+      "required": ["x1", "y1", "x2", "y2"],
+      "additionalProperties": false
+    },
     "slideNode": {
       "type": "object",
       "properties": {
@@ -158,14 +182,7 @@
           "$ref": "#/$defs/slideNodeCurve"
         },
         "bezier": {
-          "type": "array",
-          "items": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "minItems": 4,
-          "maxItems": 4
+          "$ref": "#/$defs/cubicBezier"
         },
         "flick": {
           "$ref": "#/$defs/noteFlick"
@@ -297,10 +314,29 @@
         },
         "curve": {
           "$ref": "#/$defs/slideNodeCurve"
+        },
+        "bezier": {
+          "$ref": "#/$defs/cubicBezier"
         }
       },
       "required": ["id", "beat", "lane", "width", "curve"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": {
+        "type": "object",
+        "properties": {
+          "curve": {
+            "enum": ["cubic-bezier"]
+          }
+        }
+      },
+      "then": {
+        "required": ["bezier"]
+      },
+      "else": {
+        "properties": {
+          "bezier": false
+        }
+      }
     },
     "slideDecoration": {
       "type": "object",
