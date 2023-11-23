@@ -1,0 +1,282 @@
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "title": "Fannithm Map JSON v1",
+  "type": "object",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "beat": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  },
+  "properties": {
+    "timelines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      }
+    },
+    "bpms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "timeline": {
+            "$ref": "#/$defs/uuid"
+          },
+          "beat": {
+            "$ref": "#/$defs/beat"
+          },
+          "bpm": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "timeline",
+          "beat",
+          "bpm"
+        ]
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "timeline": {
+            "$ref": "#/$defs/uuid"
+          },
+          "beat": {
+            "$ref": "#/$defs/beat"
+          },
+          "type": {
+            "type": "integer",
+            "$comment": "0: tap, 1: flick",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "lane": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 11
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "critical": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "timeline",
+          "beat",
+          "type",
+          "lane",
+          "width"
+        ],
+        "if": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "enum": [
+                1
+              ]
+            }
+          }
+        },
+        "then": {
+          "direction": {
+            "type": "integer",
+            "$comment": "0: up, 1: left, 2: right",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "required": [
+            "direction"
+          ]
+        }
+      }
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/uuid"
+          },
+          "timeline": {
+            "$ref": "#/$defs/uuid"
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "type": {
+                  "type": "integer",
+                  "$comment": "2: start, 3: invisible, 4: visible, 5: end-default, 6: end-flick",
+                  "minimum": 2,
+                  "maximum": 6
+                },
+                "beat": {
+                  "$ref": "#/$defs/beat"
+                },
+                "lane": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 11
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                },
+                "curve": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 5
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          4
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "id",
+                      "type",
+                      "beat"
+                    ]
+                  },
+                  "else": {
+                    "required": [
+                      "id",
+                      "type",
+                      "beat",
+                      "lane",
+                      "width",
+                      "curve"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "curve": {
+                        "enum": [
+                          "cubic-bezier"
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "bezier": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "minItems": 4,
+                        "maxItems": 4
+                      }
+                    },
+                    "required": [
+                      "bezier"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "enum": [
+                          6
+                        ]
+                      }
+                    }
+                  },
+                  "then": {
+                    "type": "object",
+                    "properties": {
+                      "direction": {
+                        "type": "integer",
+                        "$comment": "0: up, 1: left, 2: right",
+                        "minimum": 0,
+                        "maximum": 2
+                      },
+                      "critical": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "direction"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "timeline",
+          "notes"
+        ]
+      }
+    }
+  }
+}
