@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Fannithm Map JSON v1.1-alpha.1",
+  "title": "Fannithm Map JSON v1.1-alpha.2",
   "type": "object",
   "$defs": {
     "uuid": {
@@ -20,33 +20,34 @@
       "minimum": 1
     },
     "beat": {
-      "oneOf": [
-        {
-          "type": "object",
-          "properties": {
-            "integer": {
-              "$ref": "#/$defs/beatInteger"
-            },
-            "numerator": {
-              "$ref": "#/$defs/beatNumerator"
-            },
-            "denominator": {
-              "$ref": "#/$defs/beatDenominator"
-            }
-          },
-          "required": ["integer", "numerator", "denominator"]
+      "type": "object",
+      "properties": {
+        "integer": {
+          "$ref": "#/$defs/beatInteger"
         },
-        {
-          "type": "array",
-          "items": [
-            { "$ref": "#/$defs/beatInteger" },
-            { "$ref": "#/$defs/beatNumerator" },
-            { "$ref": "#/$defs/beatDenominator" }
-          ],
-          "minItems": 3,
-          "maxItems": 3
+        "numerator": {
+          "$ref": "#/$defs/beatNumerator"
+        },
+        "denominator": {
+          "$ref": "#/$defs/beatDenominator"
         }
-      ]
+      },
+      "required": ["integer"],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "numerator": ["denominator"],
+        "denominator": ["numerator"]
+      }
+    },
+    "integerLane": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 11
+    },
+    "integerWidth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12
     },
     "timeline": {
       "type": "object",
@@ -62,7 +63,8 @@
           "$comment": "default value: 1"
         }
       },
-      "required": ["id", "name"]
+      "required": ["id", "name"],
+      "additionalProperties": false
     },
     "bpm": {
       "type": "object",
@@ -81,15 +83,12 @@
           "exclusiveMinimum": 0
         }
       },
-      "required": ["id", "timeline", "beat", "bpm"]
+      "required": ["id", "timeline", "beat", "bpm"],
+      "additionalProperties": false
     },
-    "noteType": {
+    "noteFlick": {
       "type": "string",
-      "enum": ["tap", "flick"]
-    },
-    "flickDirection": {
-      "type": "string",
-      "enum": ["up", "left", "right"]
+      "enum": ["none", "up", "left", "right"]
     },
     "note": {
       "type": "object",
@@ -103,18 +102,14 @@
         "beat": {
           "$ref": "#/$defs/beat"
         },
-        "type": {
-          "$ref": "#/$defs/noteType"
-        },
         "lane": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 11
+          "$ref": "#/$defs/integerLane"
         },
         "width": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 12
+          "$ref": "#/$defs/integerWidth"
+        },
+        "flick": {
+          "$ref": "#/$defs/noteFlick"
         },
         "critical": {
           "type": "boolean"
@@ -123,27 +118,12 @@
           "type": "boolean"
         }
       },
-      "required": ["id", "timeline", "beat", "type", "lane", "width"],
-      "if": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "enum": ["flick"]
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "direction": {
-            "$ref": "#/$defs/flickDirection"
-          }
-        },
-        "required": ["direction"]
-      }
+      "required": ["id", "timeline", "beat", "lane", "width"],
+      "additionalProperties": false
     },
     "slideNodeType": {
       "type": "string",
-      "enum": ["start", "invisible", "visible", "end", "flick"]
+      "enum": ["start", "invisible", "visible", "end"]
     },
     "slideNodeCurve": {
       "type": "string",
@@ -169,42 +149,84 @@
           "$ref": "#/$defs/beat"
         },
         "lane": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 11
+          "$ref": "#/$defs/integerLane"
         },
         "width": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 12
+          "$ref": "#/$defs/integerWidth"
         },
         "curve": {
           "$ref": "#/$defs/slideNodeCurve"
+        },
+        "bezier": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "flick": {
+          "$ref": "#/$defs/noteFlick"
+        },
+        "critical": {
+          "type": "boolean"
         }
       },
+      "required": ["id", "type", "beat"],
+      "additionalProperties": false,
       "allOf": [
         {
+          "$comment": "make lane, width and curve optional for visible node",
           "if": {
             "type": "object",
             "properties": {
               "type": {
-                "enum": ["invisible"]
+                "enum": ["visible"]
               }
             }
           },
           "then": {
-            "required": ["id", "type", "beat"],
-            "properties": {
-              "lane": false,
-              "width": false,
-              "curve": false
+            "$comment": "lane, width and curve is optional for visible note, but you must set all of them if needed",
+            "dependentRequired": {
+              "lane": ["width", "curve"],
+              "width": ["lane", "curve"],
+              "curve": ["lane", "width"]
             }
           },
           "else": {
-            "required": ["id", "type", "beat", "lane", "width", "curve"]
+            "required": ["lane", "width", "curve"]
           }
         },
         {
+          "$comment": "add critical and flick to end node",
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": ["end"]
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "curve": {
+                "enum": ["none"]
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "flick": false,
+              "critical": false
+            }
+          }
+        },
+        {
+          "$comment": "make bezier required for bezier curve",
           "if": {
             "type": "object",
             "properties": {
@@ -216,41 +238,13 @@
           },
           "then": {
             "type": "object",
-            "properties": {
-              "bezier": {
-                "type": "array",
-                "items": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                "minItems": 4,
-                "maxItems": 4
-              }
-            },
             "required": ["bezier"]
-          }
-        },
-        {
-          "if": {
-            "type": "object",
-            "properties": {
-              "type": {
-                "enum": ["flick"]
-              }
-            }
           },
-          "then": {
+          "else": {
             "type": "object",
             "properties": {
-              "direction": {
-                "$ref": "#/$defs/flickDirection"
-              },
-              "critical": {
-                "type": "boolean"
-              }
-            },
-            "required": ["direction"]
+              "bezier": false
+            }
           }
         }
       ]
@@ -275,17 +269,14 @@
           "minItems": 2
         }
       },
-      "required": ["id", "timeline", "nodes"]
+      "required": ["id", "timeline", "nodes"],
+      "additionalProperties": false
     },
-    "decorationType": {
-      "type": "string",
-      "enum": ["slide"]
-    },
-    "decorationColor": {
+    "slideDecorationColor": {
       "type": "string",
       "enum": ["green", "yellow"]
     },
-    "decorationNode": {
+    "slideDecorationNode": {
       "type": "object",
       "properties": {
         "id": {
@@ -301,16 +292,17 @@
         },
         "width": {
           "type": "number",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 12
         },
         "curve": {
           "$ref": "#/$defs/slideNodeCurve"
         }
       },
-      "required": ["id", "beat", "lane", "width", "curve"]
+      "required": ["id", "beat", "lane", "width", "curve"],
+      "additionalProperties": false
     },
-    "decoration": {
+    "slideDecoration": {
       "type": "object",
       "properties": {
         "id": {
@@ -319,23 +311,25 @@
         "timeline": {
           "$ref": "#/$defs/uuid"
         },
-        "type": {
-          "$ref": "#/$defs/decorationType"
-        },
         "color": {
-          "$ref": "#/$defs/decorationColor"
+          "$ref": "#/$defs/slideDecorationColor"
         },
         "nodes": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/decorationNode"
+            "$ref": "#/$defs/slideDecorationNode"
           },
           "minItems": 2
         }
-      }
+      },
+      "required": ["id", "timeline", "color", "nodes"],
+      "additionalProperties": false
     }
   },
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "timelines": {
       "type": "array",
       "items": {
@@ -363,11 +357,17 @@
       }
     },
     "decorations": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/decoration"
+      "type": "object",
+      "properties": {
+        "slides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/slideDecoration"
+          }
+        }
       }
     }
   },
-  "required": ["timelines", "bpms"]
+  "required": ["timelines", "bpms"],
+  "additionalProperties": false
 }
