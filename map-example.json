@@ -1,5 +1,7 @@
 {
-  "$schema": "./map-schema.json",
+  "$schema": "./map-schema-v2.json",
+  "$version": "v2-alpha.2",
+  "offset": 0,
   "timelines": [
     {
       "id": "dd3db744-e5a8-4dfb-be0b-d1676dfc51ee",

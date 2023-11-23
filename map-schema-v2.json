@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Fannithm Map JSON v1.1-alpha.2",
+  "title": "Fannithm Map JSON v2-alpha.2",
   "type": "object",
   "$defs": {
     "uuid": {
@@ -330,6 +330,13 @@
     "$schema": {
       "type": "string"
     },
+    "$version": {
+      "$comment": "The format version of the map file",
+      "type": "string"
+    },
+    "offset": {
+      "type": "number"
+    },
     "timelines": {
       "type": "array",
       "items": {
@@ -368,6 +375,6 @@
       }
     }
   },
-  "required": ["timelines", "bpms"],
+  "required": ["$version", "timelines", "bpms"],
   "additionalProperties": false
 }
