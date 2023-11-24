@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Fannithm Map JSON v2-alpha.3",
+  "title": "Fannithm Map JSON v2-alpha.4 for Sekai Mode",
   "type": "object",
   "$defs": {
     "uuid": {
@@ -86,9 +86,13 @@
       "required": ["id", "timeline", "beat", "bpm"],
       "additionalProperties": false
     },
-    "noteFlick": {
+    "flickDirection": {
       "type": "string",
-      "enum": ["none", "up", "left", "right"]
+      "enum": ["up", "left", "right"]
+    },
+    "noteType": {
+      "type": "string",
+      "enum": ["tap", "flick", "trace", "flick-trace"]
     },
     "note": {
       "type": "object",
@@ -102,30 +106,46 @@
         "beat": {
           "$ref": "#/$defs/beat"
         },
+        "type": {
+          "$ref": "#/$defs/noteType"
+        },
         "lane": {
           "$ref": "#/$defs/integerLane"
         },
         "width": {
           "$ref": "#/$defs/integerWidth"
         },
-        "flick": {
-          "$ref": "#/$defs/noteFlick"
-        },
         "critical": {
           "type": "boolean"
         },
-        "trace": {
-          "type": "boolean"
+        "direction": {
+          "$ref": "#/$defs/flickDirection"
         }
       },
-      "required": ["id", "timeline", "beat", "lane", "width"],
-      "additionalProperties": false
+      "required": ["id", "timeline", "beat", "type", "lane", "width"],
+      "additionalProperties": false,
+      "if": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "enum": ["flick", "flick-trace"]
+          }
+        }
+      },
+      "then": {
+        "required": ["direction"]
+      },
+      "else": {
+        "properties": {
+          "direction": false
+        }
+      }
     },
     "slideNodeType": {
       "type": "string",
-      "enum": ["start", "invisible", "visible", "end"]
+      "enum": ["start", "invisible", "visible", "end", "flick-end"]
     },
-    "slideNodeCurve": {
+    "curveType": {
       "type": "string",
       "enum": [
         "none",
@@ -179,16 +199,16 @@
           "$ref": "#/$defs/integerWidth"
         },
         "curve": {
-          "$ref": "#/$defs/slideNodeCurve"
+          "$ref": "#/$defs/curveType"
         },
         "bezier": {
           "$ref": "#/$defs/cubicBezier"
         },
-        "flick": {
-          "$ref": "#/$defs/noteFlick"
-        },
         "critical": {
           "type": "boolean"
+        },
+        "direction": {
+          "$ref": "#/$defs/flickDirection"
         }
       },
       "required": ["id", "type", "beat"],
@@ -217,12 +237,12 @@
           }
         },
         {
-          "$comment": "add critical and flick to end node",
+          "$comment": "add critical to end node",
           "if": {
             "type": "object",
             "properties": {
               "type": {
-                "enum": ["end"]
+                "enum": ["end", "flick-end"]
               }
             }
           },
@@ -237,8 +257,26 @@
           "else": {
             "type": "object",
             "properties": {
-              "flick": false,
               "critical": false
+            }
+          }
+        },
+        {
+          "$comment": "add direction to flick-end node",
+          "if": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": ["flick-end"]
+              }
+            }
+          },
+          "then": {
+            "required": ["direction"]
+          },
+          "else": {
+            "properties": {
+              "direction": false
             }
           }
         },
@@ -313,7 +351,7 @@
           "maximum": 12
         },
         "curve": {
-          "$ref": "#/$defs/slideNodeCurve"
+          "$ref": "#/$defs/curveType"
         },
         "bezier": {
           "$ref": "#/$defs/cubicBezier"
@@ -360,18 +398,77 @@
       },
       "required": ["id", "timeline", "color", "nodes"],
       "additionalProperties": false
+    },
+    "animation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "target": {
+          "$ref": "#/$defs/uuid"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["speed"]
+        },
+        "beat": {
+          "$ref": "#/$defs/beat"
+        },
+        "curve": {
+          "$ref": "#/$defs/curveType"
+        },
+        "bezier": {
+          "$ref": "#/$defs/cubicBezier"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": ["id", "target", "type", "beat", "curve", "value"],
+      "additionalProperties": false,
+      "if": {
+        "type": "object",
+        "properties": {
+          "curve": {
+            "enum": ["cubic-bezier"]
+          }
+        }
+      },
+      "then": {
+        "required": ["bezier"]
+      },
+      "else": {
+        "properties": {
+          "bezier": false
+        }
+      }
     }
   },
   "properties": {
     "$schema": {
       "type": "string"
     },
-    "$version": {
-      "$comment": "The format version of the map file",
-      "type": "string"
-    },
-    "offset": {
-      "type": "number"
+    "$fannithm": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "$comment": "The format version of the map file",
+          "type": "string",
+          "enum": ["v2"]
+        },
+        "mode": {
+          "$comment": "The game mode of the map file",
+          "type": "string",
+          "enum": ["sekai"]
+        },
+        "offset": {
+          "$comment": "The time offset of the map file (in second)",
+          "type": "number"
+        }
+      },
+      "required": ["version", "mode"],
+      "additionalProperties": false
     },
     "timelines": {
       "type": "array",
@@ -409,8 +506,14 @@
           }
         }
       }
+    },
+    "animations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/animation"
+      }
     }
   },
-  "required": ["$version", "timelines", "bpms"],
+  "required": ["$fannithm", "timelines", "bpms"],
   "additionalProperties": false
 }
